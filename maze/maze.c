@@ -20,6 +20,7 @@ typedef struct StackNode
 	struct StackNode* link;
 } StackNode;
 
+element path[10000];
 // LinkedStack 
 typedef struct
 {
@@ -27,12 +28,11 @@ typedef struct
 } LinkedStackType;
 
 // 미로를 2차원 배열로 선언 
+FILE* input; // 입력 파일 스트림
+FILE* output; // 출력 파일 스트림
 char maze[MAX_MAZE_SIZE][MAX_MAZE_SIZE];
 
-void error(char* message); // 오류를 출력하는 함수
-
 void init(LinkedStackType* s); // Stack을 초기화하는 함수
-
 void push(LinkedStackType* s, element item); // Stack에 새로운 Node를 추가하는 함수
 int isEmpty(LinkedStackType* s); // Stack이 비었는지 확인하는 함수
 element pop(LinkedStackType* s); // Stack의 가장 위의 Node를 제거해서 반환하는 함수 
@@ -42,10 +42,7 @@ void pushLoc(LinkedStackType* s, int r, int c, int max_r, int max_c); // 방문하�
 
 void main()
 {
-	FILE* input; // 입력 파일 스트림
-	FILE* output; // 출력 파일 스트림
-
-	char str[2 * MAX_MAZE_SIZE + 3]; // 스트림으로부터 받을 문자열 
+	char str[10001]; // 스트림으로부터 받을 문자열 
 	int total = 0; // 총 미로의 점의 수
 	int rows = 0; // 미로의 행 수
 
@@ -57,13 +54,12 @@ void main()
 	// 입력 파일을 못 열었을 시
 	if (input == NULL)
 	{
-		error("입력 파일을 열 수 없습니다.");
+		printf("입력 파일을 열 수 없습니다.");
 	}
 
 	// 입력 파일의 공백과 줄바꿈을 기준으로 단어를 받아들여 총 점의 수를 측정
 	while (EOF != fscanf(input, "%s", str))
 	{	
-		// printf("%s",str); 
 		total++;
 	}
 	fclose(input); // 입력 파일 닫기
@@ -73,7 +69,7 @@ void main()
 	// 입력 파일을 못 열었을 시
 	if (input == NULL)
 	{
-		error("입력 파일을 열 수 없습니다.");
+		printf("입력 파일을 열 수 없습니다.");
 	}
 
 	// 입력 파일을 한 줄씩 문자열로 받아들여 총 행의 수를 측정
@@ -88,7 +84,7 @@ void main()
 	// 행과 열의 수가 최대 사이즈를 초과할 시 오류 출력
 	if (cols > MAX_MAZE_SIZE || rows > MAX_MAZE_SIZE)
 	{
-		error("미로 크기 한도 초과");
+		printf("미로 크기 한도 초과");
 	}
 
 	input = fopen(INPUT_DIR, "r"); // 입력 파일 열기
@@ -96,7 +92,7 @@ void main()
 	// 입력 파일을 못 열었을 시
 	if (input == NULL)
 	{
-		error("입력 파일을 열 수 없습니다.");
+		printf("입력 파일을 열 수 없습니다.");
 	}
 
 	// 공백과 줄바꿈을 기준으로 단어를 읽어 각 문자를 maze에 담는다.
@@ -105,6 +101,9 @@ void main()
 		for (int col = 0; col < cols; col++)
 		{
 			fscanf(input, "%s", str);
+			printf("%s", str);
+			printf(" ");
+			
 			maze[row][col] = str[0];
 			// 입구 좌표 저장
 			if (maze[row][col] == 'E') 
@@ -121,7 +120,9 @@ void main()
 					exit.c = col;
 				}
 			}
+
 		}
+		printf("\n");
 	}
 	fclose(input); // 입력 파일 닫기
 
@@ -130,7 +131,7 @@ void main()
 	// 출력 파일을 못 열었을 시
 	if (input == NULL)
 	{
-		error("출력 파일을 열 수 없습니다.");
+		printf("출력 파일을 열 수 없습니다.");
 	}
 
 	// 출력 파일 형식에 맞게 지도 작성하기 [] : 미로의 벽 / 공백 : 통로 / E : 입구 / X : 출구
@@ -202,7 +203,7 @@ void main()
 
 	if (output == NULL)
 	{
-		error("출력 파일 불러오기에 실패했습니다."); // 출력 파일 열기 실패시
+		printf("출력 파일 불러오기에 실패했습니다."); // 출력 파일 열기 실패시
 	}
 
 	// 출력 파일 형식에 맞게 쓰기
@@ -244,13 +245,6 @@ void main()
 	
 }
 
-// 오류를 출력하는 함수
-void error(char* message)
-{
-	fprintf(stderr, "%s\n", message);
-	exit(1);
-}
-
 // Stack을 초기화 하는 함수 : 처음 Stack은 비었으므로 s->top = NULL
 void init(LinkedStackType* s)
 {
@@ -263,7 +257,7 @@ void push(LinkedStackType* s, element item)
 	StackNode* temp = (StackNode*)malloc(sizeof(StackNode));
 	if (temp == NULL)
 	{
-		error("메모리할당에러\n");
+		printf("메모리할당에러\n");
 		return;
 	}
 	temp->item = item;
@@ -306,23 +300,6 @@ element pop(LinkedStackType* s)
 		s->top = s->top->link;
 		free(temp);
 		return item;
-	}
-}
-
-
-// Stack의 가장 위의 Node가 무엇인지 알려주는 함수
-element peek(LinkedStackType* s)
-{
-	// 스택이 비었을 경우 오류 출력
-	if (isEmpty)
-	{
-		fprintf(stderr, "스택이 비어있음\n");
-		exit(1);
-	}
-	// 스택이 비어있지 않은 경우 가장 위 노드의 좌표를 반환
-	else
-	{
-		return s->top->item;
 	}
 }
 
