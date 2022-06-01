@@ -11,12 +11,12 @@ typedef struct
 {
 	int r;
 	int c;
-} element;
+} Node;
 
 // LinkedStack에 쌓이는 Node
 typedef struct StackNode
 {
-	element item; 
+	Node node; 
 	struct StackNode* link;
 } StackNode;
 
@@ -31,10 +31,11 @@ FILE* input; // 입력 파일 스트림
 FILE* output; // 출력 파일 스트림 
 char maze[MAX_MAZE_SIZE][MAX_MAZE_SIZE];
 int total = 0; // 총 미로의 점의 수
-int rows = 0; // 미로의 행 수
-int cols = 0;
-element entry; 
-element exitDoor; 
+int mazeRows = 0; // 미로의 행 수
+int mazeCols = 0;
+Node entry; 
+Node exitDoor; 
+LinkedStackType s; 
 
 // Stack을 초기화 하는 함수 : 처음 Stack은 비었으므로 s->top = NULL
 void init(LinkedStackType* s)
@@ -43,7 +44,7 @@ void init(LinkedStackType* s)
 }
 
 // Stack에 새로운 Node를 추가하는 함수
-void push(LinkedStackType* s, element item)
+void push(LinkedStackType* s, Node node)
 {
 	StackNode* temp = (StackNode*)malloc(sizeof(StackNode));
 	if (temp == NULL)
@@ -51,7 +52,7 @@ void push(LinkedStackType* s, element item)
 		printf("메모리할당에러\n");
 		return;
 	}
-	temp->item = item;
+	temp->node = node;
 
 	// Stack이 비어있는 경우 top 노드를 받아들인 node로 선언하고 해당 node의 link는 NULL
 	if (s->top == NULL)
@@ -75,7 +76,7 @@ int isEmpty(LinkedStackType* s)
 }
 
 // Stack의 가장 위의 Node를 제거해서 반환하는 함수 
-element pop(LinkedStackType* s)
+Node pop(LinkedStackType* s)
 {
 	// Stack이 비어 있는 경우 오류 출력
 	if (isEmpty(s))
@@ -86,25 +87,25 @@ element pop(LinkedStackType* s)
 	else
 	{
 		StackNode* temp = s->top;
-		element item = temp->item;
+		Node node = temp->node;
 		s->top = s->top->link;
 		free(temp);
-		return item;
+		return node;
 	}
 }
 
 // 방문하지 않은 미로의 좌표를 Stack에 추가하는 함수
-void pushLoc(LinkedStackType* s, int r, int c, int max_r, int max_c)
+void pushLoc( int r, int c, int max_r, int max_c)
 {
 	// 좌표가 미로 내에 없을 경우 return
 	if (r < 0 || c < 0 || r > max_r || c > max_c) return;
 	// 방문하지 않았고 통로인 좌표인 경우 Stack에 추가
 	if (maze[r][c] != '1' && maze[r][c] != '.')
 	{
-		element tmp;
+		Node tmp;
 		tmp.r = r;
 		tmp.c = c;
-		push(s, tmp);
+		push(&s, tmp);
 	}
 }
 
@@ -127,12 +128,12 @@ void checkMazeSize (){
 	// 입력 파일을 한 줄씩 문자열로 받아들여 총 행의 수를 측정
 				while (NULL != fgets(temp, sizeof(temp), input)) 
 				{
-						rows++;
+						mazeRows++;
 				}
 
-				cols = total / rows; // 열의 수 * 행의 수 = 전체 점의 수 임을 이용해 열의 수 측정
+				mazeCols = total / mazeRows; // 열의 수 * 행의 수 = 전체 점의 수 임을 이용해 열의 수 측정
 									 // 행과 열의 수가 최대 사이즈를 초과할 시 오류 출력
-				if (cols > MAX_MAZE_SIZE || rows > MAX_MAZE_SIZE)
+				if (mazeCols > MAX_MAZE_SIZE || mazeRows > MAX_MAZE_SIZE)
 				{
 					printf("미로 크기 한도 초과");
 				}
@@ -147,9 +148,9 @@ void makeMaze(){
 	char str[10001]; 
 
 	input = fopen(INPUT_DIR, "r"); // 입력 파일 열기
-	for (int row = 0; row < rows; row++)
+	for (int row = 0; row < mazeRows; row++)
 	{
-		for (int col = 0; col < cols; col++)
+		for (int col = 0; col < mazeCols; col++)
 		{
 			fscanf(input, "%s", str);
 			printf("%s", str);
@@ -186,9 +187,9 @@ void drawMaze(){
 		printf("출력 파일을 열 수 없습니다.");
 	}
 
-	for (int row = 0; row < rows; row++)
+	for (int row = 0; row < mazeRows; row++)
 	{
-		for (int col = 0; col < cols; col++)
+		for (int col = 0; col < mazeCols; col++)
 		{
 			if (maze[row][col] == '1')
 				fprintf(output, "@@");
@@ -224,9 +225,9 @@ void pathMaze(){
 
 	fprintf(output, "탐색 경로\n"); 
 
-	for (int row = 0; row < rows; row++)
+	for (int row = 0; row < mazeRows; row++)
 	{
-		for (int col = 0; col < cols; col++)
+		for (int col = 0; col < mazeCols; col++)
 		{
 			if (maze[row][col] == '1')
 				fprintf(output, "@@");
@@ -258,10 +259,10 @@ void pathMaze(){
 void makeStack(){
 
 	int r, c; 
-	LinkedStackType s; 
+
 	init(&s); 
 
-	element here = entry; 
+	Node here = entry; 
 	printf("start "); 
 
 	while (maze[here.r][here.c] != 'X') 
@@ -270,10 +271,10 @@ void makeStack(){
 		c = here.c;
 		printf("(%d, %d) -> ", r, c);
 		maze[r][c] = '.'; 
-		pushLoc(&s, r - 1, c, rows-1, cols-1);
-		pushLoc(&s, r + 1, c, rows-1, cols-1);
-		pushLoc(&s, r, c - 1, rows-1, cols-1);
-		pushLoc(&s, r, c + 1, rows-1, cols-1);
+		pushLoc( r - 1, c, mazeRows-1, mazeCols-1);
+		pushLoc( r + 1, c, mazeRows-1, mazeCols-1);
+		pushLoc( r, c - 1, mazeRows-1, mazeCols-1);
+		pushLoc( r, c + 1, mazeRows-1, mazeCols-1);
 
 		if (isEmpty(&s))
 		{
