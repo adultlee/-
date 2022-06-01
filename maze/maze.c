@@ -75,7 +75,13 @@ int isEmpty(LinkedStackType* s)
 	return (s->top == NULL);
 }
 
-// Stack의 가장 위의 Node를 제거해서 반환하는 함수 
+Node stackTopNode(LinkedStackType* s)
+{
+	StackNode* temp = s->top;
+	Node node = temp->node;
+	return node;
+}
+
 Node pop(LinkedStackType* s)
 {
 	// Stack이 비어 있는 경우 오류 출력
@@ -86,20 +92,21 @@ Node pop(LinkedStackType* s)
 	// Stack이 비어 있지 않은 경우 top 노드를 위에서 바로 아래 노드로 바꾸고 원래 있던 top 노드의 좌표를 반환
 	else
 	{
+
 		StackNode* temp = s->top;
 		Node node = temp->node;
 		s->top = s->top->link;
-		free(temp);
+
 		return node;
 	}
 }
 
-// 방문하지 않은 미로의 좌표를 Stack에 추가하는 함수
-void pushLoc( int r, int c, int max_r, int max_c)
+
+void pushLoc( int r, int c)
 {
-	// 좌표가 미로 내에 없을 경우 return
-	if (r < 0 || c < 0 || r > max_r || c > max_c) return;
-	// 방문하지 않았고 통로인 좌표인 경우 Stack에 추가
+
+	if (r < 0 || c < 0 || r > mazeRows || c > mazeCols) return;
+
 	if (maze[r][c] != '1' && maze[r][c] != '.')
 	{
 		Node tmp;
@@ -262,19 +269,22 @@ void makeStack(){
 
 	init(&s); 
 
-	Node here = entry; 
+	Node currentIndex = entry; 
+
+	r = currentIndex.r; 
+	c = currentIndex.c;
+
 	printf("start "); 
 
-	while (maze[here.r][here.c] != 'X') 
+	while (maze[currentIndex.r][currentIndex.c] != 'X') 
 	{
-		r = here.r; 
-		c = here.c;
+
 		printf("(%d, %d) -> ", r, c);
 		maze[r][c] = '.'; 
-		pushLoc( r - 1, c, mazeRows-1, mazeCols-1);
-		pushLoc( r + 1, c, mazeRows-1, mazeCols-1);
-		pushLoc( r, c - 1, mazeRows-1, mazeCols-1);
-		pushLoc( r, c + 1, mazeRows-1, mazeCols-1);
+		pushLoc( r - 1, c);
+		pushLoc( r + 1, c);
+		pushLoc( r, c - 1);
+		pushLoc( r, c + 1);
 
 		if (isEmpty(&s))
 		{
@@ -283,13 +293,15 @@ void makeStack(){
 		}
 		else
 		{
-			here = pop(&s);
+			currentIndex = pop(&s);
+			r = currentIndex.r; 
+			c = currentIndex.c;
 		}
 	}
 
-	if (maze[here.r][here.c] == 'X')
+	if (maze[currentIndex.r][currentIndex.c] == 'X')
 	{
-		printf("(%d, %d) -> end\n", here.r, here.c); 
+		printf("(%d, %d) -> end\n", currentIndex.r, currentIndex.c); 
 		printf("success\n"); 
 	}
 }
