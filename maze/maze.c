@@ -1,71 +1,65 @@
 #include <stdio.h>  
 #include <stdlib.h>
 
+
+FILE* input; // 입력  
+FILE* output; // 출력  
+char maze[101][101] = {0,};
+int count = 0; 
+int mazeRows = 0; 
+int mazeCols = 0;
 typedef struct
 {
 	int r;
 	int c;
 } Node;
-
-// LinkedStack에 쌓이는 Node
 typedef struct StackNode
 {
-	Node node; 
 	struct StackNode* ptr;
+	Node node; 
 } StackNode;
-
-// LinkedStack 
 typedef struct
 {
 	StackNode* top;
+	int count;
 } PathStack;
 
-
-FILE* input; // 입력  
-FILE* output; // 출력  
-char maze[101][101];
-int total = 0; // 총 미로의 점의 수
-int mazeRows = 0; // 미로의 행 수
-int mazeCols = 0;
-Node entry; 
+Node entrance; 
 Node exitDoor; 
-PathStack s; 
+PathStack stack; 
 
-// Stack을 초기화 하는 함수 : 처음 Stack은 비었으므로 s->top = NULL
-void init(PathStack* s)
+
+void push(PathStack* stack, int r, int c)
 {
-	s->top = NULL;
-}
+	if(maze[r][c] == '1') return;
+	if(maze[r][c] == '.') return; // 현재 위치에서 이미 방문하거나 벽인경우 해당 위치는 더 이상 건들이지 않습니다.
+	if(0 < r && r < mazeRows && 0 < c && c < mazeCols ){
 
-// Stack에 새로운 Node를 추가하는 함수
-void push(PathStack* s, int r, int c)
-{
-	if (r < 0 || c < 0 || r > mazeRows || c > mazeCols) return;
-	if (maze[r][c] != '1' && maze[r][c] != '.')
-	{
-	StackNode* temp = (StackNode*)malloc(sizeof(StackNode));
+		PathStack * tempPtr =NULL;
+		StackNode* temp = (StackNode*)malloc(10001);
 
-	temp->node.c = c;
-	temp->node.r = r;
+		temp->node.c = c;
+		temp->node.r = r;
 
-	if (s->top == NULL)
-	{
-		s->top = temp;
-		s->top->ptr = NULL;
-	}
-	else
-	{
-		temp->ptr = s->top;
-		s->top = temp;
-	}
+		if (stack->top != NULL)
+		{
+			
+			tempPtr = stack->top;
+			temp->ptr = tempPtr;
+			stack->top = temp;
+		}
+		else
+		{
+			stack->top = temp;
+			stack->top->ptr = NULL;
+		}
 	}
 
 	
 }
-
-int isEmpty(PathStack* s)
+int isEmpty(PathStack* stack) // 현재 node가 비어있는지 확인합니다.
 {
-	if(s->top != NULL)
+	if(stack->top != NULL)
 	{
 		return 0;
 	}
@@ -74,11 +68,11 @@ int isEmpty(PathStack* s)
 	}
 }
 
-Node stackTopNode(PathStack* s) // 현재 가장 stack의 노드를 꺼냅니다.
+Node stackTopNode(PathStack* stack) // 현재 가장 stack의 노드를 꺼냅니다.
 {
-	if(!isEmpty(s)){
-		StackNode* temp = s->top;
-		Node node = temp->node;
+	if(!isEmpty(stack)){ // stack이 비어 있지 않다면 return 합니다. 
+		StackNode* ss = stack->top;
+		Node node = ss->node;
 		return node;
 	}
 	else{
@@ -87,115 +81,99 @@ Node stackTopNode(PathStack* s) // 현재 가장 stack의 노드를 꺼냅니다.
 	
 }
 
-Node pop(PathStack* s)
+Node pop(PathStack* stack) // stack의 최상단을 return하며 그 과정에서 삭제하고 새롭게 연결합니다.
 {
-		Node node = stackTopNode(s);
-		s->top = s->top->ptr;
-
+		Node node = stackTopNode(stack); // return 할 최상단노드 입니다. 
+		stack->top = stack->top->ptr; // 현재 저장된 top을 현재 최상단 top 이 바라보던 바로 전 stack의 꼭대기로 바꾸어줍니다.
 		return node;
-
 }
-
-
-
 
 
 void checkMazeSize (){
-	char temp[10001]; // 스트림으로부터 받을 문자열 
+	char temp[10001]; // 읽은 파일을 임시로 저장할 저장소 입니다. 일종의 buffer의 역할을 수행합니다.
 
-	input = fopen("input.txt", "r"); // 입력 파일 열기
+	input = fopen("input.txt", "r"); 
 
-	// 입력 파일을 못 열었을 시
-	if (input != NULL)
-	{
-			while (EOF != fscanf(input, "%s", temp))
-				{	
-					total++;
-				}
+			while (1)
+			{	
+				if(EOF == fscanf(input, "%s", temp) ) break; // End of File 에 도달한 경우 종료합니다. 
+				count++; // 파일의 문자의 수를 셉니다.
+			}
+			input = fopen("input.txt", "r"); 
 
-				input = fopen("input.txt", "r"); // 입력 파일 열기
+			while (1) 
+			{
+				if(NULL == fgets(temp, sizeof(temp), input)) break; // 한줄씩 출력합니다. 더 이상 출력할 수 없다면 종료합니다.
+				mazeRows++; // 파일의 행을 셉니다.
+			}
 
-	// 입력 파일을 한 줄씩 문자열로 받아들여 총 행의 수를 측정
-				while (NULL != fgets(temp, sizeof(temp), input)) 
-				{
-						mazeRows++;
-				}
+				mazeCols = count / mazeRows; //총 문자들을 행으로 나누면 열을 알 수 있습니다. 
 
-				mazeCols = total / mazeRows; // 열의 수 * 행의 수 = 전체 점의 수 임을 이용해 열의 수 측정
-									 // 행과 열의 수가 최대 사이즈를 초과할 시 오류 출력
-				if (mazeCols > 101 || mazeRows > 101)
-				{
-					printf("미로 크기 한도 초과");
-				}
-
-	}
-	else{
-		printf("파일을 열 수 없습니다.");
-	}
 }
 
 void makeMaze(){
-	char str[10001]; 
+	char tmp[10001]; //임시로 저장할 buffer의 역할을 수행합니다. 
 
-	input = fopen("input.txt", "r"); // 입력 파일 열기
+	input = fopen("input.txt", "r"); 
+	Node current; // 현재 노드를 출력합니다. 
 	for (int row = 0; row < mazeRows; row++)
 	{
-		for (int col = 0; col < mazeCols; col++)
+		for (int col = 0; col < mazeCols; col++) // 앞서 구한 미로의 행과 열만큼 반복하며 확인하며 미로를 그립니다.
 		{
-			fscanf(input, "%s", str);
-			printf("%s", str);
-			printf(" ");
-			
-			maze[row][col] = str[0];
-			if (maze[row][col] == 'E') 
+			fscanf(input, "%s", tmp); // 한글자씩 미로를 셉니다.
+			current.r =row;
+			current.c = col; // 현재의 미로의 행과 열입니다.
+			if (tmp[0] == 'E') //
 			{
-				entry.r = row;
-				entry.c = col;
+				entrance=current; // 이 경우 node로 저장한 entrance 에 current 위치를 저장합니다.
 			}
-			else
+			else if(tmp[0]== 'X')
 			{
-				if (maze[row][col] == 'X')
-				{
-					exitDoor.r = row;
-					exitDoor.c = col;
-				}
+
+				exitDoor = current; // 이 경우 node로 저장한 exitDoor의 위치를 저장합니다. 
+
 			}
+			maze[row][col] = tmp[0]; // 현재 저장된 temp 를 미로에 더합니다. 
 
 		}
-		printf("\n");
 	}
 	fclose(input); 
 }
 
 void drawMaze(){
-
-
 	output = fopen("output.txt", "w"); 
-
-	if (output == NULL)
-	{
-		printf("출력 파일을 열 수 없습니다.");
-	}
 
 	for (int row = 0; row < mazeRows; row++)
 	{
-		for (int col = 0; col < mazeCols; col++)
+		for (int col = 0; col < mazeCols; col++) // 앞서 구한 미로의 행과 열만큼 돌며 확인합니다.
 		{
-			if (maze[row][col] == '1')
-				fprintf(output, "@@");
-
-			else
+			if (maze[row][col] == 'E') // E라면 output에 그립니다. 마찬가지로 x거나 벽(1) 인 경우도 확인합니다.
 			{
-				if (maze[row][col] == '0')
-					fprintf(output, "  ");
-			}
-			if (maze[row][col] == 'E')
+				if(col == 0)
 				fprintf(output, "E ");
-			else
-			{
-				if (maze[row][col] == 'X')
-					fprintf(output, "X ");
+				else{
+				fprintf(output, " E");
+				}
 			}
+		
+			else if(maze[row][col] == 'X')
+			{
+					if(col == 0)
+					fprintf(output, "X ");
+					else{
+					fprintf(output, " X");
+
+					}
+			}
+			else if (maze[row][col] == '1')
+			{
+				fprintf(output, "@@");
+			}
+			else 
+			{
+				fprintf(output, "  ");
+			}
+
 		}
 		fprintf(output, "\n");
 	}
@@ -206,38 +184,44 @@ void drawMaze(){
 
 void pathMaze(){
 	
-	output = fopen("output.txt", "a+"); 
+	output = fopen("output.txt", "a+"); //파일을 읽고 사용합니다.
 
-	if (output == NULL)
-	{
-		printf("출력 파일 불러오기에 실패했습니다."); 
-	}
-
-	fprintf(output, "탐색 경로\n"); 
-
+	Node current; // 현재의 위치
 	for (int row = 0; row < mazeRows; row++)
 	{
-		for (int col = 0; col < mazeCols; col++)
+		for (int col = 0; col < mazeCols; col++) // 미로의 크기만큼 반복합니다. 
 		{
-			if (maze[row][col] == '1')
-				fprintf(output, "@@");
-
-			else
+			current.c = col; // 현재의 위치를 저장합니다. 
+			current.r = row;
+			
+			if(maze[row][col] == '0')
 			{
-				if (maze[row][col] == '0')
 					fprintf(output, "  ");
 			}
-			
-			if (row == exitDoor.r && col == exitDoor.c)
+			else if(maze[row][col] == 'E')
 			{
-				fprintf(output, "X");
+					fprintf(output, "E ");
 			}
-			else
+			else if (current.r  == exitDoor.r && current.c == exitDoor.c) // 현재의 위치와 비교하여 끝 위치에 도달했다면 종료합니다.
 			{
-				if (maze[row][col] == '.')
+				if(col == 0)
+				fprintf(output, "X ");
+				else
 				{
-					fprintf(output, ". ");
+					fprintf(output, " X");
 				}
+			}
+			else if (maze[row][col] == '1') // 벽을 만났다면 벽을 그립니다.
+			{
+				fprintf(output, "@@");
+			}
+
+			
+			else if(maze[row][col] == '.') // 경로 에 해당하는 부분을 채웁니다. 
+			{
+				
+					fprintf(output, ". ");
+
 			}
 		}
 		fprintf(output, "\n");
@@ -246,57 +230,64 @@ void pathMaze(){
 	fclose(output); 
 }
 
-void makeStack(){
+void makeStack(PathStack* stack){
 
-	int r, c; 
+	stack->top = NULL; // 현재 스택을 초기화 합니다. 
 
-	init(&s); 
+	Node currentIndex = entrance; //첫 시작은 E 부터 입ㄴ다.
 
-	Node currentIndex = entry; 
+	int r = currentIndex.r; // 현재의 노드의 위치를 저장합니다.
+	int c = currentIndex.c;
 
-	r = currentIndex.r; 
-	c = currentIndex.c;
-
-	printf("start "); 
-	printf("(%d, %d) -> ", r, c);
-	while (maze[currentIndex.r][currentIndex.c] != 'X') 
+	printf("start"); 
+	printf(" (%d,%d) -> ", r, c); // 노드가 출발합니다. 
+	if(maze[currentIndex.r][currentIndex.c] != 'E' && maze[currentIndex.r][currentIndex.c] !='1') 
+	{// E와 벽을 만나지 않은 모든 경우에 경로를 잡아줍니다.
+		 	maze[r][c] = '.'; 
+	}
+	while (1) //무한히 while문을 반복합니다.
 	{	
-		
-		maze[r][c] = '.'; 
-		push(&s, r - 1, c);
-		push(&s, r + 1, c);
-		push(&s, r, c - 1);
-		push(&s, r, c + 1);
-
-		if (isEmpty(&s))
+		if(maze[currentIndex.r][currentIndex.c] == 'X') //노드가 x 를 만난경우에 종료시킵니다.
 		{
-			printf("fail\n"); // 여기
+			printf("(%d,%d) -> end\n", currentIndex.r, currentIndex.c); 
+			printf("success\n"); 
 			break;
+		}
+		
+		if(maze[currentIndex.r][currentIndex.c] != 'E' && maze[currentIndex.r][currentIndex.c] !='1') 
+		{// E와 벽을 만나지 않은 모든 경우에 경로를 잡아줍니다.
+		 	maze[r][c] = '.'; 
+		}
+		push(&stack, r, c + 1);  // -> 으로 이동
+		push(&stack, r + 1, c);  // 아래로 이동
+		push(&stack, r, c - 1); // <- 으로 이동
+		push(&stack, r - 1, c);  //  위로 이동
+
+
+		if (!isEmpty(&stack)) // stack이 비어 있지 않다면 pop해 주면서 현재의 stack의 위치에 따라 current를 이동합니다.
+		{
+			currentIndex = pop(&stack); // pop 시켜줍니다. 
+			r = currentIndex.r; 
+			c = currentIndex.c;
+			printf("(%d, %d) -> ", r, c); //이동한 직후 출력합니다.  
 		}
 		else
 		{
-			currentIndex = pop(&s);
-			r = currentIndex.r; 
-			c = currentIndex.c;
-			printf("(%d, %d) -> ", r, c);
+			printf("fail\n"); //여기 수정하렴~~
+			break;
+						
 		}
-	}
-	if (maze[currentIndex.r][currentIndex.c] == 'X')
-	{
-		printf("(%d, %d) -> end\n", currentIndex.r, currentIndex.c); 
-		printf("success\n"); 
 	}
 	
 }
 void main()
 {
-
-
 	checkMazeSize(); // Maze를 읽어서 행 과 열을 전역변수에 저장합니다. 
-	makeMaze();
-	drawMaze();
-	makeStack();
-	pathMaze();
+	makeMaze(); // 미로를 만듭니다. 이때 입구와 출구를 만들고 
+	drawMaze(); // 미로를 output 파일에 저장합니다.
+
+	makeStack(&stack); // stack을 받아서 stack을 통해 경로를 채워갑니다.
+	pathMaze(); // 경로를 output에 그립니다. 
 
 	return;
 	
