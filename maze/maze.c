@@ -33,7 +33,8 @@ char maze[MAX_MAZE_SIZE][MAX_MAZE_SIZE];
 int total = 0; // 총 미로의 점의 수
 int rows = 0; // 미로의 행 수
 int cols = 0;
-
+element entry; 
+element exitDoor; 
 
 // Stack을 초기화 하는 함수 : 처음 Stack은 비었으므로 s->top = NULL
 void init(LinkedStackType* s)
@@ -80,7 +81,6 @@ element pop(LinkedStackType* s)
 	if (isEmpty(s))
 	{
 		fprintf(stderr, "스택이 비어있음\n");
-		exit(1);
 	}
 	// Stack이 비어 있지 않은 경우 top 노드를 위에서 바로 아래 노드로 바꾸고 원래 있던 top 노드의 좌표를 반환
 	else
@@ -146,17 +146,6 @@ void checkMazeSize (){
 void makeMaze(){
 	char str[10001]; 
 
-}
-void main()
-{
-	char str[10001]; 
-	
-	element entry; 
-	element exit; 
-
-	checkMazeSize(); // Maze를 읽어서 행 과 열을 전역변수에 저장합니다. 
-
-
 	input = fopen(INPUT_DIR, "r"); // 입력 파일 열기
 	for (int row = 0; row < rows; row++)
 	{
@@ -176,8 +165,8 @@ void main()
 			{
 				if (maze[row][col] == 'X')
 				{
-					exit.r = row;
-					exit.c = col;
+					exitDoor.r = row;
+					exitDoor.c = col;
 				}
 			}
 
@@ -185,6 +174,10 @@ void main()
 		printf("\n");
 	}
 	fclose(input); 
+}
+
+void drawMaze(){
+
 
 	output = fopen(OUTPUT_DIR, "w"); 
 
@@ -217,6 +210,52 @@ void main()
 	}
 	fprintf(output, "\n");
 	fclose(output); 
+
+}
+
+void pathMaze(){
+	
+	output = fopen(OUTPUT_DIR, "a+"); 
+
+	if (output == NULL)
+	{
+		printf("출력 파일 불러오기에 실패했습니다."); 
+	}
+
+	fprintf(output, "탐색 경로\n"); 
+
+	for (int row = 0; row < rows; row++)
+	{
+		for (int col = 0; col < cols; col++)
+		{
+			if (maze[row][col] == '1')
+				fprintf(output, "@@");
+
+			else
+			{
+				if (maze[row][col] == '0')
+					fprintf(output, "  ");
+			}
+			
+			if (row == exitDoor.r && col == exitDoor.c)
+			{
+				fprintf(output, "X");
+			}
+			else
+			{
+				if (maze[row][col] == '.')
+				{
+					fprintf(output, ". ");
+				}
+			}
+		}
+		fprintf(output, "\n");
+	}
+
+	fclose(output); 
+}
+
+void makeStack(){
 
 	int r, c; 
 	LinkedStackType s; 
@@ -252,45 +291,16 @@ void main()
 		printf("(%d, %d) -> end\n", here.r, here.c); 
 		printf("success\n"); 
 	}
+}
+void main()
+{
 
-	output = fopen(OUTPUT_DIR, "a+"); 
 
-	if (output == NULL)
-	{
-		printf("출력 파일 불러오기에 실패했습니다."); 
-	}
-
-	fprintf(output, "탐색 경로\n"); 
-
-	for (int row = 0; row < rows; row++)
-	{
-		for (int col = 0; col < cols; col++)
-		{
-			if (maze[row][col] == '1')
-				fprintf(output, "@@");
-
-			else
-			{
-				if (maze[row][col] == '0')
-					fprintf(output, "  ");
-			}
-			
-			if (row == exit.r && col == exit.c)
-			{
-				fprintf(output, "X");
-			}
-			else
-			{
-				if (maze[row][col] == '.')
-				{
-					fprintf(output, ". ");
-				}
-			}
-		}
-		fprintf(output, "\n");
-	}
-
-	fclose(output); 
+	checkMazeSize(); // Maze를 읽어서 행 과 열을 전역변수에 저장합니다. 
+	makeMaze();
+	drawMaze();
+	makeStack();
+	pathMaze();
 
 	return;
 	
